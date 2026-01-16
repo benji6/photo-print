@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Photo Print Manager</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      body {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      header {
+        text-align: center;
+        color: white;
+        margin-bottom: 40px;
+      }
+
+      h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .subtitle {
+        font-size: 1.1em;
+        opacity: 0.9;
+      }
+
+      /* Drag and Drop Area */
+      .upload-area {
+        background: white;
+        border: 3px dashed #667eea;
+        border-radius: 12px;
+        padding: 50px 20px;
+        text-align: center;
+        margin-bottom: 30px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .upload-area:hover {
+        border-color: #764ba2;
+        background: #f8f9ff;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .upload-area.drag-over {
+        border-color: #764ba2;
+        background: #f0f0ff;
+        transform: scale(1.02);
+      }
+
+      .upload-icon {
+        font-size: 3em;
+        margin-bottom: 15px;
+      }
+
+      .upload-area h2 {
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 1.5em;
+      }
+
+      .upload-area p {
+        color: #666;
+        font-size: 1em;
+        margin-bottom: 5px;
+      }
+
+      .upload-area .hint {
+        color: #999;
+        font-size: 0.9em;
+        margin-top: 10px;
+      }
+
+      #file-input {
+        display: none;
+      }
+
+      /* Controls */
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 1em;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+      }
+
+      .btn-print {
+        background: #667eea;
+        color: white;
+      }
+
+      .btn-print:hover:not(:disabled) {
+        background: #764ba2;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-clear {
+        background: #ff6b6b;
+        color: white;
+      }
+
+      .btn-clear:hover:not(:disabled) {
+        background: #ee5a52;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Columns Control */
+      .columns-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 10px 15px;
+        border-radius: 6px;
+        color: white;
+      }
+
+      .columns-control label {
+        margin: 0;
+        font-weight: 600;
+      }
+
+      .columns-control input {
+        width: 50px;
+        padding: 6px 10px;
+        border: none;
+        border-radius: 4px;
+        font-size: 1em;
+        text-align: center;
+      }
+
+      .columns-control input::-webkit-outer-spin-button,
+      .columns-control input::-webkit-inner-spin-button {
+        margin: 0;
+      }
+
+      /* Stats */
+      .stats {
+        color: white;
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 1.1em;
+      }
+
+      /* Masonry Layout */
+      .masonry-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(30%, 1fr));
+        gap: 1em;
+      }
+
+      .photo-card {
+        position: relative;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .photo-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      }
+
+      .photo-image {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        display: block;
+      }
+
+      .photo-info {
+        padding: 12px;
+        background: white;
+      }
+
+      .photo-name {
+        font-size: 0.9em;
+        color: #333;
+        margin-bottom: 8px;
+        word-break: break-word;
+        font-weight: 600;
+      }
+
+      .photo-size {
+        font-size: 0.8em;
+        color: #999;
+        margin-bottom: 10px;
+      }
+
+      .remove-btn {
+        width: 100%;
+        padding: 6px;
+        background: #ff6b6b;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85em;
+        transition: background 0.2s ease;
+      }
+
+      .remove-btn:hover {
+        background: #ee5a52;
+      }
+
+      .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        color: white;
+      }
+
+      .empty-state-icon {
+        font-size: 4em;
+        margin-bottom: 20px;
+        opacity: 0.7;
+      }
+
+      .empty-state-text {
+        font-size: 1.2em;
+        opacity: 0.8;
+      }
+
+      /* Print Styles */
+      @media print {
+        body {
+          background: white;
+          padding: 0;
+        }
+
+        :not(body, html, .masonry-grid, .masonry-grid *:not(.photo-info)) {
+          display: none !important;
+        }
+
+        .masonry-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 15px;
+          margin-bottom: 0;
+          page-break-inside: avoid;
+        }
+
+        .photo-card {
+          page-break-inside: avoid;
+        }
+
+        .photo-image {
+          height: auto;
+        }
+
+        .photo-info {
+          padding: 8px;
+        }
+
+        .photo-name {
+          font-size: 0.8em;
+        }
+
+        .photo-size {
+          font-size: 0.7em;
+        }
+      }
+
+      .photo-card {
+        break-inside: avoid;
+        margin-bottom: 1rem;
+      }
+
+      /* Loading animation */
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s ease-in-out infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>📸 Photo Print Manager</h1>
+      <p class="subtitle">
+        Drag and drop your photos to create a print-ready collection
+      </p>
+    </header>
+
+    <div class="upload-area" id="upload-area">
+      <div class="upload-icon">⬇️</div>
+      <h2>Drag and Drop Photos Here</h2>
+      <p>or</p>
+      <button
+        type="button"
+        class="select-files-btn"
+        style="background: #667eea; color: white; margin-top: 10px"
+      >
+        Select from Computer
+      </button>
+      <p class="hint">Supports JPG, PNG, GIF, WebP • Max 100MB per file</p>
+      <input type="file" id="file-input" multiple accept="image/*" />
+    </div>
+
+    <div class="stats" id="stats" style="display: none"></div>
+
+    <div class="controls" id="controls" style="display: none">
+      <button class="btn-print" id="print-btn">🖨️ Print</button>
+      <button class="btn-clear" id="clear-btn">🗑️ Clear All</button>
+      <div class="columns-control">
+        <label for="columns-input">Columns:</label>
+        <input type="number" id="columns-input" min="1" max="5" value="3" />
+      </div>
+    </div>
+
+    <div class="masonry-grid" id="masonry-grid">
+      <div class="empty-state">
+        <div class="empty-state-icon">📷</div>
+        <div class="empty-state-text">
+          No photos yet. Start by uploading some images!
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let photos = [];
+      let columnCount = 3;
+
+      const uploadArea = document.getElementById("upload-area");
+      const fileInput = document.getElementById("file-input");
+      const masonryGrid = document.getElementById("masonry-grid");
+      const controls = document.getElementById("controls");
+      const stats = document.getElementById("stats");
+      const printBtn = document.getElementById("print-btn");
+      const clearBtn = document.getElementById("clear-btn");
+      const selectFilesBtn = document.querySelector(".select-files-btn");
+      const columnsInput = document.getElementById("columns-input");
+
+      // Click to select files
+      uploadArea.addEventListener("click", () => fileInput.click());
+      selectFilesBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        fileInput.click();
+      });
+
+      // Drag and drop events
+      uploadArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadArea.classList.add("drag-over");
+      });
+
+      uploadArea.addEventListener("dragleave", () => {
+        uploadArea.classList.remove("drag-over");
+      });
+
+      uploadArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove("drag-over");
+        handleFiles(e.dataTransfer.files);
+      });
+
+      // File input change
+      fileInput.addEventListener("change", (e) => {
+        handleFiles(e.target.files);
+      });
+
+      // Columns input change
+      columnsInput.addEventListener("change", (e) => {
+        const value = parseInt(e.target.value);
+        if (value >= 1 && value <= 5) {
+          columnCount = value;
+          updateGridLayout();
+        } else {
+          columnsInput.value = columnCount;
+        }
+      });
+
+      function handleFiles(files) {
+        Array.from(files).forEach((file) => {
+          if (file.type.startsWith("image/")) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              photos.push({
+                name: file.name,
+                size: formatFileSize(file.size),
+                data: e.target.result,
+                id: Date.now() + Math.random(),
+              });
+              renderPhotos();
+            };
+            reader.readAsDataURL(file);
+          } else {
+            alert(`${file.name} is not a valid image file.`);
+          }
+        });
+        fileInput.value = "";
+      }
+
+      function renderPhotos() {
+        if (photos.length === 0) {
+          masonryGrid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📷</div>
+                        <div class="empty-state-text">No photos yet. Start by uploading some images!</div>
+                    </div>
+                `;
+          controls.style.display = "none";
+          stats.style.display = "none";
+          return;
+        }
+
+        masonryGrid.innerHTML = photos
+          .map(
+            (photo) => `
+                <div class="photo-card">
+                    <img src="${photo.data}" alt="${photo.name}" class="photo-image">
+                    <div class="photo-info">
+                        <div class="photo-name" title="${photo.name}">${photo.name}</div>
+                        <div class="photo-size">${photo.size}</div>
+                        <button class="remove-btn" onclick="removePhoto('${photo.id}')">Remove</button>
+                    </div>
+                </div>
+            `,
+          )
+          .join("");
+
+        controls.style.display = "flex";
+        updateGridLayout();
+        updateStats();
+      }
+
+      function removePhoto(id) {
+        photos = photos.filter((p) => p.id !== id);
+        renderPhotos();
+      }
+
+      function updateGridLayout() {
+        masonryGrid.style.gridTemplateColumns = `repeat(${columnCount}, 1fr)`;
+      }
+
+      function updateStats() {
+        const totalSize = photos.reduce((sum, p) => {
+          const sizeStr = p.size;
+          const parts = sizeStr.match(/^([\d.]+)\s*([A-Z]+)$/);
+          if (!parts) return sum;
+          const value = parseFloat(parts[1]);
+          const unit = parts[2];
+          const bytes =
+            unit === "KB"
+              ? value * 1024
+              : unit === "MB"
+                ? value * 1024 * 1024
+                : value;
+          return sum + bytes;
+        }, 0);
+
+        stats.innerHTML = `
+                <strong>${photos.length} photo${photos.length !== 1 ? "s" : ""}</strong> • 
+                <strong>${formatFileSize(totalSize)}</strong> total
+            `;
+        stats.style.display = "block";
+      }
+
+      function formatFileSize(bytes) {
+        if (bytes === 0) return "0 B";
+        const k = 1024;
+        const sizes = ["B", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return (
+          Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i]
+        );
+      }
+
+      printBtn.addEventListener("click", () => {
+        window.print();
+      });
+
+      clearBtn.addEventListener("click", () => {
+        if (
+          photos.length > 0 &&
+          confirm(
+            `Remove all ${photos.length} photo${photos.length !== 1 ? "s" : ""}?`,
+          )
+        ) {
+          photos = [];
+          renderPhotos();
+        }
+      });
+
+      // Initialize
+      renderPhotos();
+    </script>
+  </body>
+</html>
